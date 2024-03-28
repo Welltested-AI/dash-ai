@@ -201,11 +201,19 @@ p[contenteditable="true"] {
     outline: 1px solid #497BEF;
 }
 
-#text-refactor-input {
+.code_input {
     outline: 1px solid var(--vscode-editor-foreground);
 }
 
-#text-refactor-input:focus {
+.code_input:focus {
+    outline: 1px solid #497BEF;
+}
+
+.string_input {
+    outline: 1px solid var(--vscode-editor-foreground);
+}
+
+.string_input:focus {
     outline: 1px solid #497BEF;
 }
 

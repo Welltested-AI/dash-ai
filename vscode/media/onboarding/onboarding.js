@@ -239,143 +239,143 @@ let onboardingCompleted = false;
 let activeAgent;
 let commandEnable = false;
 let shortCutHints = '';
+let agentBuilder = null;
+let agentProvider = null;
+let agentInputsJson = {};
+let currentActiveAgent = '';
+let currentActiveSlug = '';
 
 //initialising visual studio code library
 let vscode = null;
 
-let agents = ['workspace'];
-const commands = ['refactor'];
+let agents = [];
+let commands = [];
 
-// Add your additional commands and agents
-const agentCommandsMap = {};
-
-//description for commands and agents
-const description = {
-    'refactor': 'Refactor code with instructions',
-    'workspace': 'Ask questions across your workspace'
-};
-
-const commandsExecution = {
-    'refactor': {
-        'exe': (input) => {
-            commandEnable = true;
-            input.textContent = '';
-
-            let isChipsFocused = false;
-            let isTextRefactorInputFocused = false;
-
-            const command = document.createElement('span');
-            const textRefactorInput = document.createElement('span');
-            const refactor = document.createElement('span');
-            const referenceText = document.createElement('span');
-            const refactorTextNode = document.createElement('span');
-            const referenceIdSpan = document.createElement('span');
-
-            referenceIdSpan.id = "reference-id";
-            referenceIdSpan.contentEditable = "false";
-            referenceIdSpan.appendChild(document.createTextNode('\u00A0'));
-
-            refactorTextNode.textContent = "/refactor\u00A0";
-            refactorTextNode.classList.add("text-pink-400");
-
-            referenceText.id = "add-reference-text";
-            referenceText.contentEditable = "false";
-            referenceText.tabIndex = 0;
-            referenceText.classList.add("mb-1", "px-[7px]", "inline-block", "cursor-pointer", "rounded-[4px]", "mt-1");
-            referenceText.textContent = "Code Attachment";
-            referenceText.addEventListener("click", function (event) {
-                isChipsFocused = !isChipsFocused;
-                isChipsFocused ? referenceText.classList.add("border-[#497BEF]") : referenceText.classList.remove("border-[#497BEF]");
-                if (isChipsFocused) {
-                    isTextRefactorInputFocused = false;
-                }
-            });
-
-            command.id = "command-span";
-            command.appendChild(refactorTextNode);
-            command.appendChild(referenceText);
-            command.appendChild(referenceIdSpan);
-
-            refactor.id = "text-refactor-container";
-            refactor.innerHTML = `<span id="text-to-refactor-span" contenteditable="false" class="bg-black text-white px-[7px] border border-black rounded-tl-[4px] rounded-bl-[4px] inline-block">Refactor Instructions</span>`;
-            refactor.classList.add("inline-block");
-
-            textRefactorInput.id = "text-refactor-input";
-            textRefactorInput.contentEditable = "true";
-            textRefactorInput.tabIndex = "0";
-            textRefactorInput.classList.add("px-2", "inline-block", "rounded-tr-[4px]", "rounded-br-[4px]");
-            textRefactorInput.addEventListener("focus", function (event) {
-                if (isTextRefactorInputFocused) {
-                    isChipsFocused = false;
-                }
-                referenceText.classList.remove("border-[#497BEF]");
-                isTextRefactorInputFocused = !isTextRefactorInputFocused;
-            });
-
-            textRefactorInput.appendChild(document.createTextNode("\u200B"));
-
-            refactor.appendChild(textRefactorInput);
-            command.appendChild(refactor);
-            input.appendChild(command);
-
-            setCaretToEnd(textRefactorInput);
-            //TODO[YASH]: Use platform specific shortcut naming. checkout shortcut-hint-utils
-            tippy('#add-reference-text', {
-                content: `Use ${shortCutHints} to attach selected code in editor`,
-                theme: "flutter-blue"
-            });
-
-            input.addEventListener('keydown', function (event) {
-                let keyCaught = false;
-                switch (event.key) {
-                    case "Tab":
-                        if (isTextRefactorInputFocused) {
-                            isTextRefactorInputFocused = false;
-                            isChipsFocused = true;
-                            referenceText.classList.add("border-[#497BEF]");
-                            textRefactorInput.blur();
-                        } else {
-                            isChipsFocused = false;
-                            isTextRefactorInputFocused = true;
-                            textRefactorInput.focus();
-                            setCaretToEnd(textRefactorInput);
-                        }
-                        keyCaught = true;
-                        break;
-
-                    case "Backspace":
-                        if (textRefactorInput.textContent.trim() === "" && textRefactorInput.innerText.trim() === "") {
-                            // Clear the text
-                            input.removeChild(command);
-                            setTimeout(() => {
-                                input.focus();
-                                adjustHeight();
-                            }, 0);
-                        }
-                        break;
-                }
-                if (keyCaught) {
-                    event.preventDefault();
-                }
-            });
-
-            setTimeout(() => {
-                adjustHeight();
-                referenceText.focus();
-            }, 0);
-
-        }
+const data = [
+    {
+        "name": "@workspace",
+        "supported_commands": [
+            {
+                "slug": "/query",
+                "intent": "Ask me anything",
+                "text_field_layout": "Hi, I'm here to help you. <736841542>",
+                "inputs": [
+                    {
+                        "id": "736841542",
+                        "display_text": "Your query",
+                        "type": "string_input",
+                    }
+                ],
+                "outputs": [
+                    { "id": "436621806", "type": "default_output" },
+                    { "id": "90611917", "type": "default_output" }
+                ],
+                "steps": [
+                    {
+                        "type": "search_in_workspace",
+                        "query": "<422243666>",
+                        "workspace_object_type": "all",
+                        "workspacePath":
+                            "/Users/fisclouds/Documents/smooth-app/packages/smooth_app/lib/test",
+                        "output": "436621806"
+                    },
+                    {
+                        "type": "prompt_query",
+                        "query":
+                            "Here are the related references from user's project:\n <436621806>. Answer the user's query. Query: <736841542>",
+                        "post_process": { "type": "raw" },
+                        "output": "90611917"
+                    },
+                    {
+                        "type": "append_to_chat",
+                        "message": "<90611917>",
+                        "post_process": { "type": "raw" },
+                    }
+                ]
+            },
+            {
+                "slug": "/search",
+                "intent": "Ask me anything",
+                "text_field_layout": "Hi, I'm here to help you. <736841542>",
+                "inputs": [
+                    {
+                        "id": "736841542",
+                        "display_text": "Your query",
+                        "type": "string_input",
+                    }
+                ],
+                "outputs": [
+                    { "id": "436621806", "type": "default_output" },
+                    { "id": "90611917", "type": "default_output" }
+                ],
+                "steps": [
+                    {
+                        "type": "search_in_workspace",
+                        "query": "<422243666>",
+                        "workspace_object_type": "all",
+                        "workspacePath":
+                            "/Users/fisclouds/Documents/smooth-app/packages/smooth_app/lib/test",
+                        "output": "436621806"
+                    },
+                    {
+                        "type": "prompt_query",
+                        "query":
+                            "Here are the related references from user's project:\n <436621806>. Answer the user's query. Query: <736841542>",
+                        "post_process": { "type": "raw" },
+                        "output": "90611917"
+                    },
+                    {
+                        "type": "append_to_chat",
+                        "message": "<90611917>",
+                        "post_process": { "type": "raw" },
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "",
+        "supported_commands": [
+            {
+                "slug": "/refactor",
+            "intent": "Ask me anything",
+            "text_field_layout":
+                "\nRefactor your code <736841542> <805088184>",
+            "inputs": [
+              {
+                "id": "736841542",
+                "display_text": "Your query",
+                "type": "string_input",
+              },
+              {
+                "id": "805088184",
+                "display_text": "Code Attachment",
+                "type": "code_input",
+                "generate_full_string": true,
+              }
+            ],
+            "outputs": [
+              {"id": "436621806", "type": "default_output"}
+            ],
+            "steps": [
+              {
+                "type": "prompt_query",
+                "query": "Proceed step by step: 1. Describe the selected piece of code. 2. What are the possible optimizations? 3. How do you plan to achieve that ? [Dont output code yet] 4. Output the modified code to be be programatically replaced in the editor in place of the CURSOR_SELECTION.Since this is without human review, you need to output the precise CURSOR_SELECTION" +
+                    "You are a Flutter/Dart assistant helping user modify code within their editor window.\nRefactor the given code according to user instruction. User instruction <736841542>. \n Code: <805088184>",
+                "post_process": {"type": "code"},
+                "output": "436621806"
+              },
+              {
+                "type": "replace_in_file",
+                "query": "<436621806>",
+                "replaceInFile": "805088184",
+                "continue_if_declined": true,
+              }
+            ]
+            }
+        ]
     }
-};
-
-// Concatenate agent-specific commands to the agents array
-agents = agents.filter(agent => !(agent in agentCommandsMap)).concat(
-    Object.entries(agentCommandsMap)
-        .filter(([agent, cmds]) => cmds.length > 0)
-        .map(([agent, cmds]) => cmds.map(cmd => `${agent} /${cmd}`))
-        .flat()
-);
-
+];
 
 (function () {
 
@@ -428,9 +428,9 @@ agents = agents.filter(agent => !(agent in agentCommandsMap)).concat(
     textInput.addEventListener("dragover", dragOver);
     textInput.addEventListener("drop", drop);
 
-    setTimeout(() => {
-        setLoading(false);
-    }, 3000);
+    agentProvider = new AgentProvider(data);
+    agents = [...agentProvider.agents];
+    commands = [...agentProvider.commands];
 })();
 
 function setLoading(isLoading) {
@@ -462,50 +462,30 @@ function addToolTipsById() {
 }
 
 function submitResponse() {
-
-    const textRefactor = document.getElementById("text-to-refactor-span");
-    const textRefactorInput = document.getElementById("text-refactor-input");
-    if (textRefactor) {
-        textRefactor.remove();
-    }
+    toggleLoader(true);
     let prompt = textInput.textContent;
-    if (!prompt.startsWith('/')) {
-        for (const chip in chipsData) {
-            if (prompt.includes(chip)) {
-                prompt = prompt.replace(chip, chipsData[chip].referenceContent);
-            }
-        }
-    }
-    if (!prompt.startsWith('/') && prompt.length > 0) {
-        vscode.postMessage({ type: "prompt", value: prompt });
-    } else {
-        const chipId = [];
-        const instructions = prompt;
-        for (const chip in chipsData) {
-            if (prompt.includes(chip)) {
-                prompt = prompt.replace(chip, chipsData[chip].referenceContent);
-                chipId.push(chip);
-            }
-        }
-
-        if (chipId.length > 0 && textRefactorInput.textContent.trim().length > 2) {
-            vscode.postMessage({
-                type: "action",
-                value: JSON.stringify({
-                    'message': prompt,
-                    'chipsData': chipsData,
-                    'chipId': chipId,
-                    'instructions': instructions
-                }),
+    if (commandEnable) {
+        currentActiveSlug = agentInputsJson?.slug;
+        currentActiveAgent = data.find(obj => {
+            return obj.supported_commands.some(cmd => {
+                return cmd.slugs === currentActiveSlug;
             });
+        });
+        
+        vscode.postMessage({ type: "agents", value: agentInputsJson });
+        commandEnable = false;
+    } else {
+        for (const chip in chipsData) {
+            if (prompt.includes(chip)) {
+                prompt = prompt.replace(chip, chipsData[chip].referenceContent);
+            }
         }
-
-        if (commandEnable) {
-            commandEnable = false;
-        }
+        vscode.postMessage({ type: "prompt", value: prompt });
     }
+
     textInput.textContent = "";
     adjustHeight();
+
 }
 
 function handleSubmit(event) {
@@ -528,12 +508,6 @@ function handleSubmit(event) {
             if (!activeAgent) {
                 matchingItems = query.length === 0 ? commands : commands.filter(item => item.toLowerCase().startsWith(query.toLowerCase()));
             }
-            // If there is an active agent
-            else {
-                matchingItems = query.length === 0
-                    ? agentCommandsMap[activeAgent]
-                    : agentCommandsMap[activeAgent].filter(item => item.toLowerCase().startsWith(query.toLowerCase()));
-            }
         }
 
         return matchingItems;
@@ -549,17 +523,20 @@ function handleSubmit(event) {
             div.classList.add('selected');
             div.setAttribute('aria-selected', '');
         }
-        div.textContent = description[action] ? `${trigger}${action} - ${description[action]}` : `${trigger}${action}`;
+        div.textContent = `${action}`;
         div.onclick = setItem;
         return div;
     };
 
+    agentBuilder = new AgentUIBuilder(this.ref);
     const commandDeck = new CommandDeck(
         textInput,
         textinputMenu,
         resolveFn,
         replaceFn,
-        menuItemFn
+        menuItemFn,
+        data,
+        agentBuilder
     );
 
     if (event.key === "Enter" && !event.shiftKey && commandDeck.menuRef?.hidden) {
@@ -664,12 +641,10 @@ function readTriggeredMessage() {
                 textInput.addEventListener("keydown", handleSubmit);
                 break;
             case "showValidationLoader":
-                validationLoadingIndicator.classList.add("block");
-                validationLoadingIndicator.classList.remove("hidden");
+                toggleLoader(true);
                 break;
             case "hideValidationLoader":
-                validationLoadingIndicator.classList.add("hidden");
-                validationLoadingIndicator.classList.remove("block");
+                toggleLoader(false);
                 break;
             case "keyExists":
                 onboardingCompleted = true;
@@ -730,13 +705,12 @@ function readTriggeredMessage() {
             case 'clearCommandDeck':
                 clearChat();
                 break;
-
             case 'addToReference':
                 removePlaceholder();
                 createReferenceChips(JSON.parse(message.value));
                 setTimeout(() =>
                     adjustHeight(),
-                0);
+                    0);
                 break;
             case 'setInput':
                 textInput.textContent = message.value;
@@ -753,8 +727,47 @@ function readTriggeredMessage() {
             case 'keyNotExists':
                 setLoading(false);
                 break;
+            case 'loaderUpdate':
+                const _message = JSON.parse(message.value);
+                const loaderKind = _message['kind'];
+                const loaderMessage = _message['message'];
+                setLoader(loaderKind, loaderMessage);
+                break;
         }
     });
+}
+
+function setLoader(loaderKind, loaderMessage) {
+    switch (loaderKind) {
+        case "message":
+            loadingIndicator.classList.add("hidden");
+            loadingIndicator.classList.remove("block");
+            workspaceLoader.style.display = 'flex';
+            workspaceLoader.classList.remove("animate__slideOutDown");
+            workspaceLoader.classList.add("animate__slideInUp");
+            workspaceLoaderText.textContent = loaderMessage;
+            sendButton.classList.add("disabled");
+            break;
+        case "processingFiles":
+            break;
+        case "circular":
+            toggleLoader(true);
+            break;
+        case "none":
+            toggleLoader(false);
+            break;
+    }
+}
+
+function toggleLoader(isShowLoader) {
+    if (isShowLoader) {
+        loadingIndicator.classList.add("block");
+        loadingIndicator.classList.remove("hidden");
+    } else {
+        loadingIndicator.classList.add("hidden");
+        loadingIndicator.classList.remove("block");
+        workspaceLoader.style.display = 'none';
+    }
 }
 
 function createReferenceChips(references) {
@@ -772,7 +785,8 @@ function createReferenceChips(references) {
 
     chipsData = { ...chipsData, [chipId]: references };
     if (commandEnable) {
-        insertAtReference(chip);
+        agentBuilder?.onCodeInput(references, chipId);
+        // insertAtReference(chip);
     } else {
         insertChipAtCursor(chip, textInput);
     }
@@ -885,7 +899,6 @@ function debounce(func, wait, immediate = false) {
     };
 }
 
-
 function clearChat() {
     responseContainer.innerHTML = "";
     conversationHistory = [];
@@ -930,18 +943,18 @@ function countLeadingSpacesOfLine(line) {
 
 function preProcessMarkdown(markdown) {
     const lines = markdown.split("\n");
-  
+
     const processedLines = lines.map(line => {
         const leadingSpaces = countLeadingSpacesOfLine(line);
-  
+
         if (leadingSpaces % 4 !== 0) {
             const leadingSpacesToAdd = (Math.ceil(leadingSpaces / 4)) * 4 - leadingSpaces;
             return " ".repeat(leadingSpacesToAdd) + line;
-        } 
-    
+        }
+
         return line;
     });
-  
+
     return processedLines.join("\n");
 }
 
@@ -950,7 +963,7 @@ function startAttributeExtension() {
 
     return [
         {
-            type: "lang", 
+            type: "lang",
             filter: function (text) {
                 const olMarkdownRegex = /^\s*(\d+)\. /gm;
 
@@ -966,9 +979,9 @@ function startAttributeExtension() {
 
                 return text;
             }
-        }, 
+        },
         {
-            type: "output", 
+            type: "output",
             filter: function (text) {
                 if (startNumbers.length > 0) {
                     const lines = text.split("\n");
@@ -1025,13 +1038,19 @@ function displayMessages() {
             }
         } else if (message.role === "user") {
             roleElement.innerHTML = "<strong>You</strong>";
-            roleElement.classList.add("block", "w-full", "px-2.5", "py-1.5", "user-message");
+            roleElement.classList.add("block", "w-full", "px-2.5", "py-1.5", "user-message", "inline-flex", "flex-col");
+            const agents = document.createElement("div");
+            agents.classList.add("inline-flex", "flex-col");
+            roleElement.appendChild(agents);
+            agents.innerHTML = `<span class="text-[#497BEF]">${currentActiveAgent ? currentActiveAgent : ""}</span><span class="text-rose-500">${currentActiveSlug ? currentActiveSlug : ""}</span>`;
             contentElement.classList.add("text-sm", "block", "w-full", "px-2.5", "py-1.5", "break-words", "user-message");
             contentElement.innerHTML = markdownToPlain(message.parts);
             if (message.agent && message.agent?.trim() !== "") {
                 agent.classList.add("text-pink-500", "block", "w-full", "px-2.5", "user-message");
                 agent.textContent = message.agent;
             }
+            currentActiveAgent = '';
+            currentActiveSlug = '';
         } else if (message.role === "dash") {
             //UI implementation
             roleElement.innerHTML = "<strong class='text-white'>Dash AI</strong>";
